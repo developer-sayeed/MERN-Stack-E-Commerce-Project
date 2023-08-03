@@ -137,11 +137,15 @@ const CreateNewUser = async (req, res, next) => {
     // variables
     const { name, email, password, phone, address } = req.body;
 
-    if (!req.file) {
-      throw createError(409, "Image File is required");
-    }
+    const image = req.file;
+    // if (!image) {
+    //   throw createError(409, "Image File is required");
+    // }
+    // if (image.size > 1024 * 1024 *2) {
+    //   throw createError(400, "Image File to Large, its mus be 2MB required");
+    // }
 
-    const imageBufferString = req.file.buffer.toString("base64");
+    // const imageBufferString = req.file.buffer.toString("base64");
 
     // Existing user
     const userExist = await User.exists({ email: email });
@@ -183,7 +187,6 @@ const CreateNewUser = async (req, res, next) => {
       password,
       phone,
       address,
-      photo,
     };
     console.log(newUser);
     // Return data
@@ -255,10 +258,43 @@ const activateUserAccount = async (req, res, next) => {
 
 const editSingleUser = async (req, res, next) => {
   try {
+    const userId = req.params.id;
+    const updateOptions = { new: true, runValidation: true, context: "query" };
+    // Find User From Service>FindUser File
+    const option = { password: 0 };
+    const user = await findWithID(User, userId, option);
+    let update = {};
+
+    for (let key in req.body) {
+      if (["name", "password", "phone", "address"].includes(key)) {
+        update[key] = req.body[key];
+      } else if (["email"].includes(key)) {
+        throw createError(400, "Email Can Not be Updated");
+      }
+    }
+
+    const image = req.file;
+    if (image) {
+      if (image.size > 1024 * 1024 * 2) {
+        throw createError(400, "Image File to Large, its mus be 2MB required");
+      }
+      update.photo = image.buffer.toString("base64");
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      update,
+      updateOptions
+    ).select("-password");
+
+    if (!updatedUser) {
+      throw createError(400, "User with This Id dose not exist");
+    }
     // Return data
     return successResponse(res, {
       statusCode: 200,
-      message: " User was Delete Success",
+      message: " User was Updated Success",
+      payload: { updatedUser },
     });
   } catch (error) {
     next(error);

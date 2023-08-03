@@ -36,15 +36,15 @@ const validateUserRegistration = [
     .trim()
     .notEmpty()
     .withMessage("Phone is required, Enter Your Phone Number"),
-  body("photo")
-    .custom((value, { req }) => {
-      if (!req.file || !req.file.buffer) {
-        throw new Error("User Photo is required");
-      }
-      return true;
-    })
-    .optional()
-    .withMessage("Photo is required"),
+  // body("photo")
+  //   .custom((value, { req }) => {
+  //     if (!req.file || !req.file.buffer) {
+  //       throw new Error("User Photo is required");
+  //     }
+  //     return true;
+  //   })
+  //   .optional()
+  //   .withMessage("Photo is required"),
 ];
 
 // Export
