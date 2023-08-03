@@ -137,6 +137,12 @@ const CreateNewUser = async (req, res, next) => {
     // variables
     const { name, email, password, phone, address } = req.body;
 
+    if (!req.file) {
+      throw createError(409, "Image File is required");
+    }
+
+    const imageBufferString = req.file.buffer.toString("base64");
+
     // Existing user
     const userExist = await User.exists({ email: email });
 
@@ -154,21 +160,22 @@ const CreateNewUser = async (req, res, next) => {
 
     // prepare Email
 
-    // const emailData = {
-    //   email,
-    //   subject: "Account Activaton Email",
-    //   html: `
-    //   <h2>Hello ${name}</h2>
-    //   <p>Please Click Here to <a href="${clientUrl}/api/v1/user/activate/${token}" target="_blank">Active Your Account</a></p>`,
-    // };
+    const emailData = {
+      email,
+      subject: "Account Activaton Email",
+      html: `
+      <h2> Hello ${name} </h2>
+      <p>Please Click Here to <a href="${clientUrl}/api/v1/user/activate/${token}" target="_blank">Active Your Account</a></p>`,
+    };
 
     // Send email with Nodemailer
-    // try {
-    //   await emailWithNodemail(emailData);
-    // } catch (error) {
-    //   next(createError(500, `failed to send email`));
-    //   return;
-    // }
+
+    try {
+      await emailWithNodemail(emailData);
+    } catch (error) {
+      next(createError(500, `failed to send email`));
+      return;
+    }
 
     const newUser = {
       name,
@@ -176,11 +183,13 @@ const CreateNewUser = async (req, res, next) => {
       password,
       phone,
       address,
+      photo,
     };
+    console.log(newUser);
     // Return data
     return successResponse(res, {
       statusCode: 200,
-      message: `Please go to your Email for Completing your registration process`,
+      message: `Hi ${name}, Please go to your ${email} for Completing your registration process`,
       payload: { token },
     });
   } catch (error) {

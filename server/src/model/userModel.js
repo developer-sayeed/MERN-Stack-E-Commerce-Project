@@ -31,7 +31,7 @@ const userSchema = new Schema(
     photo: {
       type: Buffer,
       contentType: String,
-      required: [false, " Photo is required"],
+      required: [true, "User Photo is required"],
     },
     address: {
       type: String,

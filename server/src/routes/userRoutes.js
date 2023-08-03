@@ -14,7 +14,9 @@ const userRouter = express.Router();
 userRouter.get("/", getAllUser);
 userRouter.post(
   "/register",
-
+  userPhotoUpload.single("photo"),
+  validateUserRegistration,
+  runValidation,
   CreateNewUser
 );
 userRouter.post("/verify", activateUserAccount);
