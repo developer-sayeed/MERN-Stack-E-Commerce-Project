@@ -6,24 +6,31 @@ const {
   CreateNewUser,
   activateUserAccount,
   editSingleUser,
+  handleBanUser,
+  handleUnBanUser,
 } = require("../controller/userController");
 const userPhotoUpload = require("../middleware/multer");
 const { validateUserRegistration } = require("../validators/authValidator");
 const runValidation = require("../validators/validatorCheck");
+const { isLoggedIn, isLoggedOut, isAdmin } = require("../middleware/auth");
+
 const userRouter = express.Router();
 
-userRouter.get("/", getAllUser);
+userRouter.get("/", isLoggedIn, isAdmin, getAllUser);
 userRouter.post(
   "/register",
-  // userPhotoUpload.single("photo"),
+  isLoggedOut,
+  userPhotoUpload.single("photo"),
   validateUserRegistration,
   runValidation,
   CreateNewUser
 );
-userRouter.post("/verify", activateUserAccount);
-userRouter.get("/:id", getSingleUser);
-userRouter.delete("/:id", deleteSingleUser);
-userRouter.put("/:id", editSingleUser);
-userRouter.patch("/:id", editSingleUser);
+userRouter.post("/verify", isLoggedOut, activateUserAccount);
+userRouter.get("/:id", isLoggedIn, getSingleUser);
+userRouter.delete("/:id", isLoggedIn, deleteSingleUser);
+userRouter.put("/:id", isLoggedIn, editSingleUser);
+userRouter.patch("/:id", isLoggedIn, editSingleUser);
+userRouter.put("/ban-user/:id", isLoggedIn, isAdmin, handleBanUser);
+userRouter.put("/unban-user/:id", isLoggedIn, isAdmin, handleUnBanUser);
 
 module.exports = { userRouter };

@@ -1,4 +1,3 @@
-const express = require("express");
 const User = require("../model/userModel.js");
 const createError = require("http-errors");
 const { successResponse } = require("../Helper/responseHandller.js");
@@ -71,7 +70,6 @@ const getAllUser = async (req, res, next) => {
 const getSingleUser = async (req, res, next) => {
   try {
     // variables
-
     const id = req.params.id;
     const option = { password: 0 };
 
@@ -107,11 +105,6 @@ const deleteSingleUser = async (req, res, next) => {
 
     const user = await findWithID(User, id, option);
 
-    // user photo Remove
-    const userImagePath = user.photo;
-
-    deltePhoto(userImagePath);
-
     // remove user
     await User.findByIdAndDelete({ _id: id, isAdmin: false });
     // Return data
@@ -138,14 +131,14 @@ const CreateNewUser = async (req, res, next) => {
     const { name, email, password, phone, address } = req.body;
 
     const image = req.file;
-    // if (!image) {
-    //   throw createError(409, "Image File is required");
-    // }
-    // if (image.size > 1024 * 1024 *2) {
-    //   throw createError(400, "Image File to Large, its mus be 2MB required");
-    // }
+    if (!image) {
+      throw createError(409, "Image File is required");
+    }
+    if (image.size > 1024 * 1024 * 2) {
+      throw createError(400, "Image File to Large, its mus be 2MB required");
+    }
 
-    // const imageBufferString = req.file.buffer.toString("base64");
+    const imageBufferString = req.file.buffer.toString("base64");
 
     // Existing user
     const userExist = await User.exists({ email: email });
@@ -157,7 +150,7 @@ const CreateNewUser = async (req, res, next) => {
     // Create JWT token
 
     const token = CreateJSONWebtoken(
-      { name, email, password, phone, address },
+      { name, email, password, phone, address, photo: imageBufferString },
       process.env.JWT_ACTIVATION_KEY,
       3600
     );
@@ -187,6 +180,7 @@ const CreateNewUser = async (req, res, next) => {
       password,
       phone,
       address,
+      photo: imageBufferString,
     };
     console.log(newUser);
     // Return data
@@ -301,6 +295,71 @@ const editSingleUser = async (req, res, next) => {
   }
 };
 
+/**
+ * @DESC Banned User
+ * @ROUTE /api/v1/user/ban-user:id
+ * @method PUT
+ * @access private Admin Only
+ */
+
+const handleBanUser = async (req, res, next) => {
+  try {
+    const userId = req.params.id;
+    await findWithID(User, userId);
+    const update = { isBanned: true };
+    const updateOptions = { new: true, runValidation: true, context: "query" };
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      update,
+      updateOptions
+    ).select("-password");
+
+    if (!updatedUser) {
+      throw createError(400, "User was not banned Successfully");
+    }
+    // Return data
+    return successResponse(res, {
+      statusCode: 200,
+      message: " User was Banned Success",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+/**
+ * @DESC UnBanned User
+ * @ROUTE /api/v1/user/unban-user:id
+ * @method PUT
+ * @access private Admin Only
+ */
+
+const handleUnBanUser = async (req, res, next) => {
+  try {
+    const userId = req.params.id;
+    await findWithID(User, userId);
+    const update = { isBanned: false };
+    const updateOptions = { new: true, runValidation: true, context: "query" };
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      update,
+      updateOptions
+    ).select("-password");
+
+    if (!updatedUser) {
+      throw createError(400, "User was not Unbanned Successfully");
+    }
+    // Return data
+    return successResponse(res, {
+      statusCode: 200,
+      message: " User was UnBanned Success",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllUser,
   getSingleUser,
@@ -308,4 +367,6 @@ module.exports = {
   CreateNewUser,
   activateUserAccount,
   editSingleUser,
+  handleBanUser,
+  handleUnBanUser,
 };
