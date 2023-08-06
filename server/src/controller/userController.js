@@ -39,7 +39,7 @@ const getAllUser = async (req, res, next) => {
     const count = await User.find(filter).countDocuments();
 
     // Valadation User
-    if (!users) throw createError(404, "No users found");
+    if (!users || users.length == 0) throw createError(404, "No users found");
 
     return successResponse(res, {
       statusCode: 200,
@@ -255,11 +255,11 @@ const editSingleUser = async (req, res, next) => {
     const option = { password: 0 };
     const user = await findWithID(User, userId, option);
     let update = {};
-
+    const allowedFiled = ["name", "password", "phone", "address"];
     for (let key in req.body) {
-      if (["name", "password", "phone", "address"].includes(key)) {
+      if (allowedFiled.includes(key)) {
         update[key] = req.body[key];
-      } else if (["email"].includes(key)) {
+      } else if (key == email) {
         throw createError(400, "Email Can Not be Updated");
       }
     }
