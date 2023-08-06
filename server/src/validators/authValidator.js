@@ -19,7 +19,7 @@ const validateUserRegistration = [
     .notEmpty()
     .withMessage("Pasword is required, Enter Your Password")
     .isLength({ min: 6, max: 30 })
-    .withMessage("Name Should be between 6 and 30 characters")
+    .withMessage("Pasword Should be between 6 and 30 characters")
     .matches(
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/
     )
@@ -47,7 +47,7 @@ const validateUserRegistration = [
     .withMessage("Photo is required"),
 ];
 
-// Register validation
+// User Login validation
 const validateUserLogin = [
   body("email")
     .trim()
@@ -60,7 +60,7 @@ const validateUserLogin = [
     .notEmpty()
     .withMessage("Pasword is required, Enter Your Password")
     .isLength({ min: 6, max: 30 })
-    .withMessage("Name Should be between 6 and 30 characters")
+    .withMessage("Pasword Should be between 6 and 30 characters")
     .matches(
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/
     )
@@ -69,5 +69,70 @@ const validateUserLogin = [
     ),
 ];
 
+// Update Password validation
+const validateUserPasswordUpdate = [
+  body("oldPassword")
+    .trim()
+    .notEmpty()
+    .withMessage("oldPasword is required, Enter Your Password")
+    .isLength({ min: 6, max: 30 })
+    .withMessage("OldPassword Should be between 6 and 30 characters")
+    .matches(
+      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/
+    )
+    .withMessage(
+      "password should be contain at least one uppercase letter, one lowercase letter, one number, and one special character."
+    ),
+  body("newPassword")
+    .trim()
+    .notEmpty()
+    .withMessage("NewPasword is required, Enter Your Password")
+    .isLength({ min: 6, max: 30 })
+    .withMessage("NewPassword Should be between 6 and 30 characters")
+    .matches(
+      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/
+    )
+    .withMessage(
+      "password should be contain at least one uppercase letter, one lowercase letter, one number, and one special character."
+    ),
+  body("confirmPassword").custom((value, { req }) => {
+    if (value !== req.body.newPassword) {
+      throw new Error("Password did not match");
+    }
+    return true;
+  }),
+];
+
+// Forget Password validation
+const validateUserForgetPassword = [
+  body("email")
+    .trim()
+    .notEmpty()
+    .withMessage("Email is required, Enter Your Email")
+    .isEmail()
+    .withMessage("Invalid email address"),
+];
+// Rerset password validation
+const validateUserResetPassword = [
+  body("token").trim().notEmpty().withMessage("Token is Messing,"),
+  body("password")
+    .trim()
+    .notEmpty()
+    .withMessage("Pasword is required, Enter Your Password")
+    .isLength({ min: 6, max: 30 })
+    .withMessage("Pasword Should be between 6 and 30 characters")
+    .matches(
+      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/
+    )
+    .withMessage(
+      "password should be contain at least one uppercase letter, one lowercase letter, one number, and one special character."
+    ),
+];
 // Export
-module.exports = { validateUserRegistration, validateUserLogin };
+module.exports = {
+  validateUserRegistration,
+  validateUserLogin,
+  validateUserPasswordUpdate,
+  validateUserForgetPassword,
+  validateUserResetPassword,
+};

@@ -2,12 +2,11 @@ const User = require("../model/userModel.js");
 const createError = require("http-errors");
 const { successResponse } = require("../Helper/responseHandller.js");
 const { findWithID } = require("../service/findItemWithID.js");
-const { deltePhoto } = require("../Helper/deletePhoto.js");
 const { CreateJSONWebtoken } = require("../Helper/jsonWebtoken.js");
 const { clientUrl } = require("../screct.js");
 const { emailWithNodemail } = require("../Helper/email.js");
 const jwt = require(`jsonwebtoken`);
-
+const bcrypt = require("bcryptjs");
 /**
  * @DESC Get All User
  * @ROUTE /api/v1/user
@@ -154,9 +153,7 @@ const CreateNewUser = async (req, res, next) => {
       process.env.JWT_ACTIVATION_KEY,
       3600
     );
-
     // prepare Email
-
     const emailData = {
       email,
       subject: "Account Activaton Email",
@@ -327,6 +324,7 @@ const handleBanUser = async (req, res, next) => {
     next(error);
   }
 };
+
 /**
  * @DESC UnBanned User
  * @ROUTE /api/v1/user/unban-user:id
@@ -360,6 +358,144 @@ const handleUnBanUser = async (req, res, next) => {
   }
 };
 
+/**
+ * @DESC Update Password
+ * @ROUTE /api/v1/user/update-password
+ * @method PUT
+ * @access private Only Loggin User Access Only
+ */
+
+const updatePassword = async (req, res, next) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const userId = req.params.id;
+    const user = await findWithID(User, userId);
+
+    //Compare the password
+
+    const passwordMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!passwordMatch) {
+      throw createError(400, "oldPassword Did not Correctly Exists");
+    }
+
+    const filter = { userId };
+    const update = { $Set: { password: newPassword } };
+    const updateOptions = { new: true };
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { password: newPassword },
+      updateOptions
+    ).select("-password");
+
+    if (!updatedUser) {
+      throw createError(400, "User Password was not Updated Successfully");
+    }
+    next();
+    // Return data
+    return successResponse(res, {
+      statusCode: 200,
+      message: " User Password Updated Success",
+      payload: updatedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+/**
+ * @DESC Forget Password
+ * @ROUTE /api/v1/user/forget-password
+ * @method PUT
+ * @access private
+ */
+
+const updateForgetPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    const userData = await User.findOne({ email: email });
+
+    if (!userData) {
+      throw createError(
+        404,
+        `Email is incorrect or you have not verified your email. please register first Yourself`
+      );
+    }
+
+    // Create JWT token
+
+    const token = CreateJSONWebtoken(
+      { email },
+      process.env.JWT_RESET_PASSWORD_KEY,
+      3600
+    );
+    // prepare Email
+    const emailData = {
+      email,
+      subject: "Reset Password Email",
+      html: `
+          <h2> Hello ${userData.name} </h2>
+          <p>Please Click Here to <a href="${clientUrl}/api/v1/user/reset-password/${token}" target="_blank">Reset Your Password</a></p>`,
+    };
+
+    // Send email with Nodemailer
+
+    try {
+      await emailWithNodemail(emailData);
+    } catch (error) {
+      next(createError(500, `failed to send reset password email`));
+      return;
+    }
+    // Return data
+    return successResponse(res, {
+      statusCode: 200,
+      message: `Please got to your ${email} for reseting the password`,
+      payload: token,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+/**
+ * @DESC Reset Password
+ * @ROUTE /api/v1/user/reset-password
+ * @method PUT
+ * @access private
+ */
+
+const updateResetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+
+    const decoded = jwt.verify(token, process.env.JWT_RESET_PASSWORD_KEY);
+
+    if (!decoded) {
+      throw createError(400, `Invalid or Expired Token`);
+    }
+    const filter = { email: decoded.email };
+    const update = { password: password };
+    const option = { new: true };
+    const updatedUser = await User.findOneAndUpdate(
+      filter,
+      update,
+      option
+    ).select("-password");
+
+    if (!updatedUser) {
+      throw createError(400, "Password reset failed");
+    }
+
+    // Return data
+    return successResponse(res, {
+      statusCode: 200,
+      message: `Password Reset Successfully`,
+      payload: {},
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllUser,
   getSingleUser,
@@ -369,4 +505,7 @@ module.exports = {
   editSingleUser,
   handleBanUser,
   handleUnBanUser,
+  updatePassword,
+  updateForgetPassword,
+  updateResetPassword,
 };
